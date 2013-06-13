@@ -65,7 +65,8 @@ var my = {
             that.vertices = vertices || [];
             that.edges = edges || [];
             that.faces = faces || [];
-            that.center = function() {
+            that.rotationStatus = {x: 0, y: 0, z: 0};
+            that.getCenter = function() {
                 var x = 0;
                 var y = 0;
                 var z = 0;
@@ -88,7 +89,7 @@ var my = {
                 return that;
             };
             that.moveTo = function(x,y,z) {
-                var c = that.center();
+                var c = that.getCenter();
                 var dx = x - c.x;
                 var dy = y - c.y;
                 var dz = z - c.z;
@@ -98,18 +99,21 @@ var my = {
                 for (var i = 0; i < that.vertices.length; i++) {
                     that.vertices[i] = that.vertices[i].rotateX(angle);
                 }
+                that.rotationStatus.x += angle;
                 return that;
             };
             that.rotateY = function(angle) {
                 for (var i = 0; i < that.vertices.length; i++) {
                     that.vertices[i] = that.vertices[i].rotateY(angle);
                 }
+                that.rotationStatus.y += angle;
                 return that;
             };
             that.rotateZ = function(angle) {
                 for (var i = 0; i < that.vertices.length; i++) {
                     that.vertices[i] = that.vertices[i].rotateZ(angle);
                 }
+                that.rotationStatus.z += angle;
                 return that;
             };
             that.combine = function(p3D) {
@@ -147,7 +151,7 @@ var my = {
 
         squaresWall3D: function() {
             var o = my.constructors.polyhedron3D();
-            for (var x = -100; x < 110; x += 10) {
+            for (var x = -1000; x < 1100; x += 10) {
                 for (var y = -10; y < 20; y += 10) {
                     square = my.constructors.square3D(8).moveTo(x, y, 0);
                     o = o.combine(square);
@@ -236,23 +240,30 @@ var my = {
         },
 
         animate: function(d) {
-            console.log(d);
             d.canvas.width = d.canvas.width;
             var time = (new Date()).getTime() - d.startTime;
-            angleChange = d.angularSpeed * time * 2 * Math.PI / 1000;
+            d.angleChange = d.angularSpeed * time * 2 * Math.PI / 1000;
             if (d.rightLeft === 'right') {
                 if (d.onOff === 'on') {
                     my.globalVars.releasedRight = false;
-                    //if (d.corners.lineB.x > 300) {
-                    //}
+                    if (d.o.rotationStatus.y > -10) d.o.rotateY(-0.5);
+                    if (d.o.getCenter().x > -150) {
+                        d.o.translate(-Math.cos(10 * Math.PI / 180)/2, 0, -Math.sin(10 * Math.PI / 180)/2);
+                    } else {
+                        my.handlers.turnRight.bre.apply(document.getElementById('der'));
+                    }
                 }
                 if (d.onOff === 'off') {
-                    return;
                     my.globalVars.releasedRight = false;
-                    if (d.corners.d.y < my.constants.corners.d.y) {
-                    } else {
-                        d.corners.d.y = my.constants.corners.d.y;
-                        d.corners.b.y = my.constants.corners.b.y;
+                    if (d.o.rotationStatus.y < 0) {
+                        d.o.rotateY(0.5);
+                    } else if (d.o.getCenter().z < 0) {
+                        d.o.rotateY(-d.o.rotationStatus.y);
+                        d.o.translate(0, 0, 0.1);
+                    }
+                    else {
+                        d.o.translate(0, 0, -d.o.getCenter().z);
+                        my.functions.draw3DPolyhedron(d.o, d.context, d.dashLength);
                         my.globalVars.releasedRight = true;
                         return;
                     }
@@ -260,35 +271,39 @@ var my = {
             } else if (d.rightLeft === 'left') {
                 if (d.onOff === 'on') {
                     my.globalVars.releasedLeft = false;
-                    //d.corners.c.y = (d.corners.c.y > finalDY) ?
-                    //    d.corners.c.y -= speed * time : finalDY;
-                    //d.corners.a.y = (d.corners.a.y < finalBY) ?
-                    //    d.corners.a.y += speed * time : finalBY;
+                    console.log(d.o.rotationStatus.y);
+                    if (d.o.rotationStatus.y < 10) d.o.rotateY(0.5);
+                    if (d.o.getCenter().x < 150) {
+                        d.o.translate(Math.cos(10 * Math.PI / 180)/2, 0, -Math.sin(10 * Math.PI / 180)/2);
+                    } else {
+                        my.handlers.turnRight.bre.apply(document.getElementById('izq'));
+                    }
                 }
                 if (d.onOff === 'off') {
-                    return;
                     my.globalVars.releasedLeft = false;
-                    if (d.corners.c.y < my.constants.corners.c.y) {
-                        d.corners.c.y += speed * time;
-                        d.corners.a.y -= speed * time;
-                    } else {
-                        d.corners.c.y = my.constants.corners.c.y;
-                        d.corners.a.y = my.constants.corners.a.y;
+                    if (d.o.rotationStatus.y > 0) {
+                        d.o.rotateY(-0.5);
+                    } else if (d.o.getCenter().z < 0) {
+                        d.o.rotateY(-d.o.rotationStatus.y);
+                        d.o.translate(0, 0, 0.1);
+                    }
+                    else {
+                        d.o.translate(0, 0, -d.o.getCenter().z);
                         my.functions.draw3DPolyhedron(d.o, d.context, d.dashLength);
                         my.globalVars.releasedLeft = true;
                         return;
                     }
                 }
             }
-            my.functions.draw3DPolyhedron(d.o, d.context, d.dashLength);
+            my.functions.draw3DPolyhedron(d.o, d.context);
             my.currentData = d;
-            console.log('working');
             requestAnimFrame(function() {
                 my.functions.animate(d);
             });
         },
 
         animateOrWait: function(onOff, rightLeft) {
+            console.log(onOff, rightLeft, my.globalVars);
             if (my.globalVars.releasedRight === false && rightLeft === 'right' ||
                     my.globalVars.releasedLeft === false && rightLeft === 'left') {
                 my.currentData.onOff = onOff;
@@ -297,7 +312,8 @@ var my = {
                 my.functions.animate(my.currentData);
             } else if (my.globalVars.releasedRight === true && rightLeft === 'left' ||
                     my.globalVars.releasedLeft === true && rightLeft === 'right') {
-                my.currentData = my.constructors.animationData(squares_wall, 3, 4, onOff, rightLeft);
+                console.log('hola');
+                my.currentData = my.constructors.animationData(squares_wall, 1, 0.01, onOff, rightLeft);
                 my.functions.animate(my.currentData);
             } else if (my.globalVars.releasedRight === false && rightLeft === 'left' ||
                     my.globalVars.releasedLeft === false && rightLeft === 'right') {

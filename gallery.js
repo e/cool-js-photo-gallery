@@ -7,7 +7,10 @@ window.requestAnimFrame = (function(callback) {
 
 var my = {
 
-    globalVars: {},
+    globalVars: {
+        releasedRight: true,
+        releasedLeft: true
+    },
     constructors: {
 
         point3D: function(x, y, z) {
@@ -156,11 +159,13 @@ var my = {
         image3D: function() {
         },
 
-        animationData: function(object3D, linearSpeed, angularSpeed) {
+        animationData: function(object3D, linearSpeed, angularSpeed, onOff, rightLeft) {
             that = {};
             that.o = object3D;
             that.linearSpeed = linearSpeed;
             that.angularSpeed = angularSpeed;
+            that.onOff = onOff;
+            that.rightLeft = rightLeft;
             that.canvas = document.getElementById('gallery');
             that.context = that.canvas.getContext('2d');
             that.startTime = (new Date()).getTime;
@@ -231,16 +236,18 @@ var my = {
         },
 
         animate: function(d) {
+            console.log(d);
             d.canvas.width = d.canvas.width;
             var time = (new Date()).getTime() - d.startTime;
             angleChange = d.angularSpeed * time * 2 * Math.PI / 1000;
             if (d.rightLeft === 'right') {
                 if (d.onOff === 'on') {
                     my.globalVars.releasedRight = false;
-                    if (d.corners.lineB.x > 300) {
-                    }
+                    //if (d.corners.lineB.x > 300) {
+                    //}
                 }
                 if (d.onOff === 'off') {
+                    return;
                     my.globalVars.releasedRight = false;
                     if (d.corners.d.y < my.constants.corners.d.y) {
                     } else {
@@ -253,12 +260,13 @@ var my = {
             } else if (d.rightLeft === 'left') {
                 if (d.onOff === 'on') {
                     my.globalVars.releasedLeft = false;
-                    d.corners.c.y = (d.corners.c.y > finalDY) ?
-                        d.corners.c.y -= speed * time : finalDY;
-                    d.corners.a.y = (d.corners.a.y < finalBY) ?
-                        d.corners.a.y += speed * time : finalBY;
+                    //d.corners.c.y = (d.corners.c.y > finalDY) ?
+                    //    d.corners.c.y -= speed * time : finalDY;
+                    //d.corners.a.y = (d.corners.a.y < finalBY) ?
+                    //    d.corners.a.y += speed * time : finalBY;
                 }
                 if (d.onOff === 'off') {
+                    return;
                     my.globalVars.releasedLeft = false;
                     if (d.corners.c.y < my.constants.corners.c.y) {
                         d.corners.c.y += speed * time;
@@ -274,6 +282,7 @@ var my = {
             }
             my.functions.draw3DPolyhedron(d.o, d.context, d.dashLength);
             my.currentData = d;
+            console.log('working');
             requestAnimFrame(function() {
                 my.functions.animate(d);
             });
@@ -288,7 +297,7 @@ var my = {
                 my.functions.animate(my.currentData);
             } else if (my.globalVars.releasedRight === true && rightLeft === 'left' ||
                     my.globalVars.releasedLeft === true && rightLeft === 'right') {
-                my.currentData = my.constructors.animationData(onOff, rightLeft);
+                my.currentData = my.constructors.animationData(squares_wall, 3, 4, onOff, rightLeft);
                 my.functions.animate(my.currentData);
             } else if (my.globalVars.releasedRight === false && rightLeft === 'left' ||
                     my.globalVars.releasedLeft === false && rightLeft === 'right') {
@@ -313,7 +322,6 @@ var my = {
                 clearTimeout(my.globalVars.t);
                 var that = this;
                 my.functions.setBackground(that, '');
-                my.currentData = my.constructors.animationData(squares_wall, 3, 4);
                 my.currentData.onOff = 'off';
                 my.currentData.startTime = (new Date()).getTime();
                 my.functions.animate(my.currentData);
@@ -323,7 +331,6 @@ var my = {
             acc: function() {
                 clearTimeout(my.globalVars.t);
                 var that = this;
-                my.currentData = my.constructors.animationData(squares_wall, 3, 4);
                 my.functions.setBackground(that, 'red');
                 my.functions.animateOrWait('on', 'left');
                 // console.log('hola');

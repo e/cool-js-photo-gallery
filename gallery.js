@@ -5,12 +5,6 @@ window.requestAnimFrame = (function(callback) {
         };
       })();
 
-if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
-var detect = document.createElement('p');
-detect.innerHTML = 'You seem to be in a mobile device';
-var body = document.getElementById('body');
-body.appendChild(detect);
-}
 var my = {
 
     globalVars: {
@@ -25,7 +19,7 @@ var my = {
             width: 4400,
             height: 510
         },
-        vSlicesFactor: 0.05,
+        vSlicesFactor: 0.1,
         centerOfTheLastColumn: 4400 / 2, // galleryImageSize.width / 2
         releasedRight: true,
         releasedLeft: true
@@ -310,6 +304,17 @@ var my = {
 
     functions: {
 
+        testForPhone: function() {
+            if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
+            var detect = document.createElement('p');
+            detect.innerHTML = "You seem to be in a mobile device, I don't know if the gallery works in such devices, any feedback is welcome - m @ rcosbartolo . me - thanks!";
+            var body = document.getElementById('body');
+            body.appendChild(detect);
+            my.globalVars.phone = true;
+            my.globalVars.vSlicesFactor = 0.02;
+            }
+        },
+
         draw: {
             polyhedron3D: function(polyhedron3D, context) {
                 var p = my.globalVars.projectionParameters;
@@ -543,5 +548,7 @@ var izq = document.getElementById('izq');
 izq.onmouseover = my.handlers.turnLeft.acc;
 izq.onmouseout = my.handlers.turnLeft.bre;
 window.onload = function() {
+    my.functions.testForPhone();
     my.functions.draw.scene();
 };
+

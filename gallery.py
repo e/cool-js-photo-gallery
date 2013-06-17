@@ -15,4 +15,4 @@ for i in xrange(20,4400,220):
         #paste the image at location i,j:
         new_im.paste(im, (i,j))
 
-new_im.save('test.jpg')
+new_im.save('gallery.jpg')

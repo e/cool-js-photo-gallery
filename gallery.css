@@ -1,0 +1,4 @@
+#container {margin: 0 auto; /*width: 900px;*/}
+#canvasWrapper {border: 1px solid;text-align: center;margin: 0 auto;}
+.flecha {display: inline-block; width: 90px; height: 600px; border: 1px solid;}
+#gallery {background-color: #000;}

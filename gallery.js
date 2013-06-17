@@ -8,9 +8,22 @@ window.requestAnimFrame = (function(callback) {
 var my = {
 
     globalVars: {
+
+        projectionParameters: {
+            win_width: 960,
+            win_height:600,
+            fov: 150,
+            viewer_distance: 200
+        },
+        galleryImageSize: {
+            width: 4400,
+            height: 510
+        },
+        centerOfTheLastColumn: 4400 / 2, // galleryImageSize.width / 2
         releasedRight: true,
         releasedLeft: true
     },
+
     constructors: {
 
         point3D: function(x, y, z) {
@@ -55,7 +68,7 @@ var my = {
                 var factor = fov / (viewer_distance + that.z);
                 var x = that.x * factor + win_width / 2;
                 var y = -that.y * factor + win_height / 2;
-                return my.constructors.point3D(x, y, 1);
+                return my.constructors.point3D(x, y, 0);
             };
             return that;
         },
@@ -65,6 +78,7 @@ var my = {
             that.vertices = vertices || [];
             that.edges = edges || [];
             that.faces = faces || [];
+            that.images = {};
             that.rotationStatus = {x: 0, y: 0, z: 0};
             that.getCenter = function() {
                 var x = 0;
@@ -116,6 +130,17 @@ var my = {
                 that.rotationStatus.z += angle;
                 return that;
             };
+            that.getProjectionCoordinates = function(win_width, win_height, fov, viewer_distance) {
+                v = [];
+                for (var i = 0; i < polyhedron3D.vertices.length; i++) {
+                    v[i] = polyhedron3D.vertices[i].project(
+                            win_width       || 400,
+                            win_height      || 400,
+                            fov             || 128,
+                            viewer_distance || 200);
+                }
+                return v;
+            };
             that.combine = function(p3D) {
                 var v = that.vertices.length;
                 var e = that.edges.length;
@@ -134,10 +159,12 @@ var my = {
                 }
                 return that;
             };
+            that.loadImageonFace = function(img, n) {
+                that.images[n] = img;
+            };
             return that;
-
         },
-        
+
         square3D: function(l) {
             if (typeof(l) !== "number") throw "Please, specify a valid length.";
             var vertices = [my.constructors.point3D((-l/2),   l/2 ,  0),
@@ -160,7 +187,97 @@ var my = {
             return o;
         },
 
-        image3D: function() {
+        rectangle3D: function(w, h, image) {
+            if (typeof(w) !== "number" || typeof(h) !== "number")
+                throw "Please, specify a valid width/length.";
+            var vertices = [my.constructors.point3D((-w/2),   h/2 ,  0),
+                            my.constructors.point3D(  w/2 ,   h/2 ,  0),
+                            my.constructors.point3D(  w/2 , (-h/2),  0),
+                            my.constructors.point3D((-w/2), (-h/2),  0)];
+            var edges = [[0,1], [1,2], [2,3], [3,0]];
+            var faces = [[0,1,2,3,0]];
+            var that = my.constructors.polyhedron3D(vertices, edges, faces);
+            that.image = image;
+            that.width = w;
+            that.height = h;
+            that.numVSlices = that.width * 0.095;
+            that.numHSlices = that.height * 0.095;
+            that.gridLength = that.numVSlices * that.numHSlices;
+            that.vSlicesWidth = that.width / that.numVSlices;
+            that.hSlicesHeight = that.height / that.numHSlices;
+            that.vSlices = [];
+//            that.hSlices = [];
+            if (image) {
+                for (var i = 0; i < that.numVSlices; i++) {
+                    that.vSlices[i] = my.constructors.rectangle3D(that.vSlicesWidth, that.height);
+                    that.vSlices[i] = that.vSlices[i].translate(i * that.vSlicesWidth - w / 2, 0, 0);
+                }
+//                for (i = 0; i < that.numHSlices; i++) {
+//                    that.hSlices[i] = my.constructors.rectangle3D(that.width, that.hSlicesHeight);
+//                    that.hSlices[i] = that.hSlices[i].translate(0, (-that.height/2) + i * that.hSlicesHeight, 0);
+//                }
+//                that.rotateX = function(angle) {
+//                    for (var i = 0; i < that.vertices.length; i++) {
+//                        that.vertices[i] = that.vertices[i].rotateX(angle);
+//                    }
+//                    for (i = 0; i < that.vSlices.length; i++) {
+//                        that.vSlices[i] = that.vSlices[i].rotateX(angle);
+//                    }
+//                    for (i = 0; i < that.hSlices.length; i++) {
+//                        that.hSlices[i] = that.hSlices[i].rotateX(angle);
+//                    }
+//                    that.rotationStatus.x += angle;
+//                    return that;
+//                };
+                that.rotateY = function(angle) {
+                    for (var i = 0; i < that.vertices.length; i++) {
+                        that.vertices[i] = that.vertices[i].rotateY(angle);
+                    }
+                    for (i = 0; i < that.vSlices.length; i++) {
+                        that.vSlices[i] = that.vSlices[i].rotateY(angle);
+                    }
+//                    for (i = 0; i < that.hSlices.length; i++) {
+//                        that.hSlices[i] = that.hSlices[i].rotateY(angle);
+//                    }
+                    that.rotationStatus.y += angle;
+                    return that;
+                };
+                that.translate = function(dx, dy, dz) {
+                    for (var i = 0; i < that.vertices.length; i++) {
+                        that.vertices[i].x += dx;
+                        that.vertices[i].y += dy;
+                        that.vertices[i].z += dz;
+                    }
+                    for (i = 0; i < that.vSlices.length; i++) {
+                        that.vSlices[i] = that.vSlices[i].translate(dx, dy, dz);
+                    }
+                    return that;
+                };
+                that.draw = function(context) {
+                    my.functions.draw.imageOn3DRectangle(context, that.image, that);
+                };
+            }
+            return that;
+        },
+
+        imagesWallArray3D: function(width, height, images) {
+            // the space between images is width / 10
+            var columns = Math.ceil(images.length / 3);
+            var totalWidth = columns * width * 11 / 10;
+            var xMax = totalWidth / 2 + 1;
+            var yMax = height + width / 10 + 1;
+            var that = [];
+            var i = 0;
+            for (var x = 1 - xMax; x < xMax; x += width * 11 / 10) {
+                for (var y = 1 - yMax; y < yMax; y += height + width / 10) {
+                    r = my.constructors.rectangle3D(width, height, images[i]).moveTo(x, y, 0);
+                    that[i] = r;
+                    i++;
+                }
+            }
+            // i need this to stop the translation of the gallery
+            my.globalVars.centerOfTheLastColumn = xMax - width / 2;
+            return that;
         },
 
         animationData: function(object3D, linearSpeed, angularSpeed, onOff, rightLeft) {
@@ -174,68 +291,102 @@ var my = {
             that.context = that.canvas.getContext('2d');
             that.startTime = (new Date()).getTime;
             return that;
+        },
+
+        scene: function(center) {
+            var img = document.getElementById('cesta');
+            var s = my.globalVars.galleryImageSize;
+            r = my.constructors.rectangle3D(s.width, s.height, img);
+            return r;
         }
     },
 
     functions: {
 
-        draw3DPolyhedron: function(polyhedron3D, context) {
-            var v = [];
-            for (var i = 0; i < polyhedron3D.vertices.length; i++) {
-                v[i] = polyhedron3D.vertices[i].project(400, 400, 128, 10);
-            }
-            context.beginPath();
-            context.moveTo(v[polyhedron3D.edges[0][0]].x, v[polyhedron3D.edges[0][0]].y);
-            context.lineTo(v[polyhedron3D.edges[0][1]].x, v[polyhedron3D.edges[0][1]].y);
-            for (var j = 1; j < polyhedron3D.edges.length; j++) {
-                var a = polyhedron3D.edges[j - 1][1];
-                var b = polyhedron3D.edges[j][0];
-                if (a === b) {
-                    context.lineTo(v[polyhedron3D.edges[j][1]].x, v[polyhedron3D.edges[j][1]].y);
-                } else {
-                    context.moveTo(v[polyhedron3D.edges[j][0]].x, v[polyhedron3D.edges[j][0]].y);
-                    context.lineTo(v[polyhedron3D.edges[j][1]].x, v[polyhedron3D.edges[j][1]].y);
+        draw: {
+            polyhedron3D: function(polyhedron3D, context) {
+                var p = my.globalVars.projectionParameters;
+                var v = [];
+                for (var i = 0; i < polyhedron3D.vertices.length; i++) {
+                    v[i] = polyhedron3D.vertices[i].project(
+                            p.win_width,
+                            p.win_height,
+                            p.fov,
+                            p.viewer_distance
+                            );
                 }
-            }
-            context.stroke();
-        },
+                context.beginPath();
+                context.moveTo(v[polyhedron3D.edges[0][0]].x, v[polyhedron3D.edges[0][0]].y);
+                context.lineTo(v[polyhedron3D.edges[0][1]].x, v[polyhedron3D.edges[0][1]].y);
+                for (var j = 1; j < polyhedron3D.edges.length; j++) {
+                    var a = polyhedron3D.edges[j - 1][1];
+                    var b = polyhedron3D.edges[j][0];
+                    if (a === b) {
+                        context.lineTo(v[polyhedron3D.edges[j][1]].x, v[polyhedron3D.edges[j][1]].y);
+                    } else {
+                        context.moveTo(v[polyhedron3D.edges[j][0]].x, v[polyhedron3D.edges[j][0]].y);
+                        context.lineTo(v[polyhedron3D.edges[j][1]].x, v[polyhedron3D.edges[j][1]].y);
+                    }
+                }
+                context.stroke();
+            },
 
-        keystoneAndDisplayImage: function(ctx, img, x, y, pixelWidth, scalingFactor) {
-            var h = img.height,
-            w = img.width,
-            
-            // The number of slices to draw.
-            numSlices = Math.abs(pixelWidth),
-            
-            // The width of each source slice.
-            sliceWidth = w / numSlices,
-            
-            // Whether to draw the slices in reverse order or not.
-            polarity = (pixelWidth > 0) ? 1 : -1,
+            imageOn3DRectangle: function(context, img, rectangle3D) {
+                for (var i = 0; i < rectangle3D.vSlices.length; i++) {
+                    var sourceWidth = img.width / rectangle3D.numVSlices;
+                    var sourceHeight = img.height;
+                    var p = my.globalVars.projectionParameters;
+                    var p1 = rectangle3D.vSlices[i].vertices[0].project(
+                            p.win_width,
+                            p.win_height,
+                            p.fov,
+                            p.viewer_distance
+                            );
 
-            // How much should we scale the width of the slice 
-            // before drawing?
-            widthScale = Math.abs(pixelWidth) / w,
-            
-            // How much should we scale the height of the slice 
-            // before drawing? 
-            heightScale = (1 - scalingFactor) / numSlices;
+                    var p2 = rectangle3D.vSlices[i].vertices[2].project(
+                            p.win_width,
+                            p.win_height,
+                            p.fov,
+                            p.viewer_distance
+                            );
+                    var sourceX = sourceWidth * i;
+                    var sourceY = 0;
+                    var destX = p1.x;
+                    var destY = p1.y;
+                    var destWidth = p2.x - p1.x;
+                    var destHeight = p2.y - p1.y;
+                    try {
+                    context.drawImage(
+                            img, sourceX, sourceY, sourceWidth, sourceHeight,
+                            destX, destY, destWidth, destHeight);
+                    }
+                    finally {continue;}
+                }
+    //            for (i = 0; i < rectangle3D.hSlices.length; i++) {
+    //                var sourceWidthH = img.width;
+    //                var sourceHeightH = img.height / rectangle3D.numHSlices;
+    //                var p1H = rectangle3D.hSlices[i].vertices[0].project(400, 400, 128, 200);
+    //                var p2H = rectangle3D.hSlices[i].vertices[2].project(400, 400, 128, 200);
+    //                var sourceXH = 0;
+    //                var sourceYH = sourceHeightH * i;
+    //                var destXH = p1H.x;
+    //                var destYH = p1H.y;
+    //                var destWidthH = p2H.x - p1H.x;
+    //                var destHeightH = p2H.y - p1H.y;
+    //                context.drawImage(
+    //                        img, sourceXH, sourceYH, sourceWidthH, sourceHeightH,
+    //                        destXH, destYH, destWidthH, destHeightH);
+    //            }
+            },
 
-            for(var n = 0; n < numSlices; n++) {
-                // Source: where to take the slice from.
-                var sx = sliceWidth * n,
-                    sy = 0,
-                    sWidth = sliceWidth,
-                    sHeight = h;
-                // Destination: where to draw the slice to 
-                // (the transformation happens here).
-                var dx = x + (sliceWidth * n * widthScale * polarity),
-                // Este es el que hay que cambiar
-                    dy = y + ((h * heightScale * n) / 2),
-                    dWidth = sliceWidth * widthScale,
-                    dHeight = h * (1 - (heightScale * n));
-                ctx.drawImage(img, sx, sy, sWidth, sHeight, 
-                            dx, dy, dWidth, dHeight);
+            scene: function(animationData) {
+                var canvas = document.getElementById('gallery');
+                var context = canvas.getContext('2d');
+                r = my.constructors.scene();
+                if (!my.currentData)
+                    my.currentData = my.constructors.animationData(r, 1, 0.01);
+                o = my.currentData.o;
+                o.draw(context);
             }
         },
 
@@ -247,8 +398,8 @@ var my = {
                 if (d.onOff === 'on') {
                     my.globalVars.releasedRight = false;
                     if (d.o.rotationStatus.y > -10) d.o.rotateY(-0.5);
-                    if (d.o.getCenter().x > -150) {
-                        d.o.translate(-Math.cos(10 * Math.PI / 180)/2, 0, -Math.sin(10 * Math.PI / 180)/2);
+                    if (d.o.getCenter().x > -my.globalVars.centerOfTheLastColumn) {
+                        d.o.translate(-Math.cos(10 * Math.PI / 180)*9, 0, -Math.sin(10 * Math.PI / 180)*9);
                     } else {
                         my.handlers.turnRight.bre.apply(document.getElementById('der'));
                     }
@@ -256,14 +407,15 @@ var my = {
                 if (d.onOff === 'off') {
                     my.globalVars.releasedRight = false;
                     if (d.o.rotationStatus.y < 0) {
-                        d.o.rotateY(0.5);
+                        d.o.rotateY(0.9);
                     } else if (d.o.getCenter().z < 0) {
                         d.o.rotateY(-d.o.rotationStatus.y);
-                        d.o.translate(0, 0, 0.1);
+                        d.o.translate(0, 0, 1);
                     }
                     else {
                         d.o.translate(0, 0, -d.o.getCenter().z);
-                        my.functions.draw3DPolyhedron(d.o, d.context, d.dashLength);
+                        my.functions.draw.scene(d);
+                        my.currentData = d;
                         my.globalVars.releasedRight = true;
                         return;
                     }
@@ -271,10 +423,9 @@ var my = {
             } else if (d.rightLeft === 'left') {
                 if (d.onOff === 'on') {
                     my.globalVars.releasedLeft = false;
-                    console.log(d.o.rotationStatus.y);
                     if (d.o.rotationStatus.y < 10) d.o.rotateY(0.5);
-                    if (d.o.getCenter().x < 150) {
-                        d.o.translate(Math.cos(10 * Math.PI / 180)/2, 0, -Math.sin(10 * Math.PI / 180)/2);
+                    if (d.o.getCenter().x < my.globalVars.centerOfTheLastColumn) {
+                        d.o.translate(Math.cos(10 * Math.PI / 180)*9, 0, -Math.sin(10 * Math.PI / 180)*9);
                     } else {
                         my.handlers.turnRight.bre.apply(document.getElementById('izq'));
                     }
@@ -282,20 +433,21 @@ var my = {
                 if (d.onOff === 'off') {
                     my.globalVars.releasedLeft = false;
                     if (d.o.rotationStatus.y > 0) {
-                        d.o.rotateY(-0.5);
+                        d.o.rotateY(-0.9);
                     } else if (d.o.getCenter().z < 0) {
                         d.o.rotateY(-d.o.rotationStatus.y);
-                        d.o.translate(0, 0, 0.1);
+                        d.o.translate(0, 0, 1);
                     }
                     else {
                         d.o.translate(0, 0, -d.o.getCenter().z);
-                        my.functions.draw3DPolyhedron(d.o, d.context, d.dashLength);
+                        my.functions.draw.scene(d);
+                        my.currentData = d;
                         my.globalVars.releasedLeft = true;
                         return;
                     }
                 }
             }
-            my.functions.draw3DPolyhedron(d.o, d.context);
+            my.functions.draw.scene(d);
             my.currentData = d;
             requestAnimFrame(function() {
                 my.functions.animate(d);
@@ -303,7 +455,6 @@ var my = {
         },
 
         animateOrWait: function(onOff, rightLeft) {
-            console.log(onOff, rightLeft, my.globalVars);
             if (my.globalVars.releasedRight === false && rightLeft === 'right' ||
                     my.globalVars.releasedLeft === false && rightLeft === 'left') {
                 my.currentData.onOff = onOff;
@@ -312,9 +463,19 @@ var my = {
                 my.functions.animate(my.currentData);
             } else if (my.globalVars.releasedRight === true && rightLeft === 'left' ||
                     my.globalVars.releasedLeft === true && rightLeft === 'right') {
-                console.log('hola');
-                my.currentData = my.constructors.animationData(squares_wall, 1, 0.01, onOff, rightLeft);
-                my.functions.animate(my.currentData);
+                var img = document.getElementById('cesta');
+                if (my.currentData) {
+                    var c = my.currentData.o.getCenter();
+                    var s = my.globalVars.galleryImageSize;
+                    var r = my.constructors.rectangle3D(s.width, s.height, img).moveTo(c.x, c.y, c.z);
+                    my.currentData = my.constructors.animationData(r, 1, 0.01, onOff, rightLeft);
+                    my.functions.animate(my.currentData);
+                } else {
+                    var ss = my.globalVars.galleryImageSize;
+                    var rr = my.constructors.rectangle3D(ss.width, ss.height, img);
+                    my.currentData = my.constructors.animationData(rr, 1, 0.01, onOff, rightLeft);
+                    my.functions.animate(my.currentData);
+                }
             } else if (my.globalVars.releasedRight === false && rightLeft === 'left' ||
                     my.globalVars.releasedLeft === false && rightLeft === 'right') {
                 my.globalVars.t = setTimeout(function(){my.functions.animateOrWait(onOff, rightLeft);}, 200);
@@ -359,6 +520,10 @@ var my = {
                 my.currentData.startTime = (new Date()).getTime();
                 my.functions.animate(my.currentData);
             }
+        },
+
+        drawScene: function() {
+            my.functions.draw.scene();
         }
     }
 };
@@ -370,14 +535,6 @@ der.onmouseout = my.handlers.turnRight.bre;
 var izq = document.getElementById('izq');
 izq.onmouseover = my.handlers.turnLeft.acc;
 izq.onmouseout = my.handlers.turnLeft.bre;
-
-var canvas = document.getElementById('gallery');
-var c = canvas.getContext('2d');
-//var squares_wall = my.constructors.squaresWall3D(3);
-var squares_wall = my.constructors.squaresWall3D();
-my.functions.draw3DPolyhedron(squares_wall, c);
-//var img = new Image();
-//img.src = 'k.jpg';
-var img = document.getElementById('cesta');
-//my.functions.keystoneAndDisplayImage(c, img, 1, 1, img.width * 0.75, 0.8);
-// keystoneAndDisplayImage: function(ctx, img, x, y, pixelWidth, scalingFactor) {
+window.onload = function() {
+    my.functions.draw.scene();
+};

@@ -5,6 +5,12 @@ window.requestAnimFrame = (function(callback) {
         };
       })();
 
+if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
+var detect = document.createElement('p');
+detect.innerHTML = 'You seem to be in a mobile device';
+var body = document.getElementById('body');
+body.appendChild(detect);
+}
 var my = {
 
     globalVars: {
@@ -19,6 +25,7 @@ var my = {
             width: 4400,
             height: 510
         },
+        vSlicesFactor: 0.05,
         centerOfTheLastColumn: 4400 / 2, // galleryImageSize.width / 2
         releasedRight: true,
         releasedLeft: true
@@ -200,8 +207,8 @@ var my = {
             that.image = image;
             that.width = w;
             that.height = h;
-            that.numVSlices = that.width * 0.095;
-            that.numHSlices = that.height * 0.095;
+            that.numVSlices = that.width * my.globalVars.vSlicesFactor;
+            that.numHSlices = that.height * my.globalVars.vSlicesFactor;
             that.gridLength = that.numVSlices * that.numHSlices;
             that.vSlicesWidth = that.width / that.numVSlices;
             that.hSlicesHeight = that.height / that.numHSlices;

@@ -1,3 +1,4 @@
+//TODO: perfeccionar que al soltar se quede siempre en la misma pos
 window.requestAnimFrame = (function(callback) {
         return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
         function(callback) {
@@ -19,8 +20,8 @@ var my = {
             width: 4400,
             height: 510
         },
-        vSlicesFactor: 0.1,
-        centerOfTheLastColumn: 4400 / 2, // galleryImageSize.width / 2
+        vSlicesFactor: 0.095,
+        centerOfTheLastColumn: 3600 / 2, // galleryImageSize.width / 2
         releasedRight: true,
         releasedLeft: true
     },
@@ -311,7 +312,7 @@ var my = {
             var body = document.getElementById('body');
             body.appendChild(detect);
             my.globalVars.phone = true;
-            my.globalVars.vSlicesFactor = 0.02;
+            my.globalVars.vSlicesFactor = 0.04;
             }
         },
 
@@ -354,7 +355,6 @@ var my = {
                             p.fov,
                             p.viewer_distance
                             );
-
                     var p2 = rectangle3D.vSlices[i].vertices[2].project(
                             p.win_width,
                             p.win_height,
@@ -372,7 +372,7 @@ var my = {
                             img, sourceX, sourceY, sourceWidth, sourceHeight,
                             destX, destY, destWidth, destHeight);
                     }
-                    finally {continue;}
+                    catch (IndexSizeError) {continue;}
                 }
     //            for (i = 0; i < rectangle3D.hSlices.length; i++) {
     //                var sourceWidthH = img.width;
@@ -411,7 +411,7 @@ var my = {
                     my.globalVars.releasedRight = false;
                     if (d.o.rotationStatus.y > -10) d.o.rotateY(-0.5);
                     if (d.o.getCenter().x > -my.globalVars.centerOfTheLastColumn) {
-                        d.o.translate(-Math.cos(10 * Math.PI / 180)*9, 0, -Math.sin(10 * Math.PI / 180)*9);
+                        d.o.translate(-Math.cos(10 * Math.PI / 180)*10, 0, -Math.sin(10 * Math.PI / 180)*10);
                     } else {
                         my.handlers.turnRight.bre.apply(document.getElementById('der'));
                     }
@@ -437,7 +437,7 @@ var my = {
                     my.globalVars.releasedLeft = false;
                     if (d.o.rotationStatus.y < 10) d.o.rotateY(0.5);
                     if (d.o.getCenter().x < my.globalVars.centerOfTheLastColumn) {
-                        d.o.translate(Math.cos(10 * Math.PI / 180)*9, 0, -Math.sin(10 * Math.PI / 180)*9);
+                        d.o.translate(Math.cos(10 * Math.PI / 180)*10, 0, -Math.sin(10 * Math.PI / 180)*10);
                     } else {
                         my.handlers.turnRight.bre.apply(document.getElementById('izq'));
                     }
@@ -504,7 +504,7 @@ var my = {
             acc: function() {
                 clearTimeout(my.globalVars.t);
                 var that = this;
-                my.functions.setBackground(that, 'red');
+                my.functions.setBackground(that, 'white');
                 my.functions.animateOrWait('on', 'right');
             },
             bre: function() {
@@ -520,7 +520,7 @@ var my = {
             acc: function() {
                 clearTimeout(my.globalVars.t);
                 var that = this;
-                my.functions.setBackground(that, 'red');
+                my.functions.setBackground(that, 'white');
                 my.functions.animateOrWait('on', 'left');
                 // console.log('hola');
             },
@@ -534,8 +534,14 @@ var my = {
             }
         },
 
-        drawScene: function() {
-            my.functions.draw.scene();
+        stop: function() {
+            if (my.globalVars.releasedRight === true &&
+                    my.globalVars.releasedLeft === false) {
+                my.handlers.turnLeft.bre();
+            } else if (my.globalVars.releasedRight === false &&
+                    my.globalVars.releasedLeft === true) {
+                my.handlers.turnRight.bre();
+            }
         }
     }
 };
@@ -547,6 +553,8 @@ der.onmouseout = my.handlers.turnRight.bre;
 var izq = document.getElementById('izq');
 izq.onmouseover = my.handlers.turnLeft.acc;
 izq.onmouseout = my.handlers.turnLeft.bre;
+var canvas = document.getElementById('gallery');
+canvas.onmouseover = my.handlers.stop;
 window.onload = function() {
     my.functions.testForPhone();
     my.functions.draw.scene();

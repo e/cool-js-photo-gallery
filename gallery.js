@@ -425,6 +425,7 @@ var my = {
                         d.o.translate(0, 0, 1);
                     }
                     else {
+                        d.o.rotateY(-d.o.rotationStatus.y);
                         d.o.translate(0, 0, -d.o.getCenter().z);
                         my.functions.draw.scene(d);
                         my.currentData = d;
@@ -451,6 +452,7 @@ var my = {
                         d.o.translate(0, 0, 1);
                     }
                     else {
+                        d.o.rotateY(-d.o.rotationStatus.y);
                         d.o.translate(0, 0, -d.o.getCenter().z);
                         my.functions.draw.scene(d);
                         my.currentData = d;

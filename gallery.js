@@ -438,9 +438,10 @@ var my = {
                         destY = p(my.currentData.o.vertices[0]).y + zoomData.pxp * 3 + zoomData.hp / 2;
                     else if (zoomData.row === 3)
                         destY = p(my.currentData.o.vertices[3]).y - destHeight;
-                    context.drawImage(
-                            img, sourceX, sourceY, sourceWidth, sourceHeight,
-                            destX, destY, destWidth, destHeight);
+                    if (destY !== undefined)
+                        context.drawImage(
+                                img, sourceX, sourceY, sourceWidth, sourceHeight,
+                                destX, destY, destWidth, destHeight);
                 }
             }
         },

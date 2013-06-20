@@ -420,18 +420,19 @@ var my = {
                 o.draw(context);
                 if (zoomData !== undefined) {
                     var img = document.getElementById('cesta');
-                    sourceX = zoomData.column * my.globalVars.galleryImageSize.pxBetweenPhotos + 
+                    var sourceX = zoomData.column * my.globalVars.galleryImageSize.pxBetweenPhotos + 
                             (zoomData.column - 1) * my.globalVars.imageSize.width;
-                    sourceY = zoomData.row * my.globalVars.galleryImageSize.pxBetweenPhotos +
+                    var sourceY = zoomData.row * my.globalVars.galleryImageSize.pxBetweenPhotos +
                             (zoomData.row - 1) * my.globalVars.imageSize.height;
-                    sourceWidth = my.globalVars.imageSize.width;
-                    sourceHeight = my.globalVars.imageSize.height;
-                    destAux = my.constructors.point3D(zoomData.x0, zoomData.y0, 0);
+                    var sourceWidth = my.globalVars.imageSize.width;
+                    var sourceHeight = my.globalVars.imageSize.height;
+                    var destAux = my.constructors.point3D(zoomData.x0, zoomData.y0, 0);
                     //destX = p(destAux).x;
                     //destY = p(destAux).y;
-                    destWidth = my.globalVars.imageSize.width * 1.3;
-                    destHeight = my.globalVars.imageSize.height * 1.3;
-                    destX = p(my.currentData.o.vertices[0]).x + (zoomData.column - 1) * (zoomData.wp + zoomData.pxp - zoomData.wp / 32);
+                    var destWidth = my.globalVars.imageSize.width * 1.3;
+                    var destHeight = my.globalVars.imageSize.height * 1.3;
+                    var destX = p(my.currentData.o.vertices[0]).x + (zoomData.column - 1) * (zoomData.wp + zoomData.pxp - zoomData.wp / 32);
+                    var destY;
                     if (zoomData.row === 1)
                         destY = p(my.currentData.o.vertices[0]).y + zoomData.pxp;
                     else if (zoomData.row === 2)

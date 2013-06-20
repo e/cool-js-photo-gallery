@@ -1,4 +1,3 @@
-//TODO: perfeccionar que al soltar se quede siempre en la misma pos
 window.requestAnimFrame = (function(callback) {
         return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
         function(callback) {
@@ -10,6 +9,7 @@ var my = {
 
     globalVars: {
 
+        canvas: document.getElementById('gallery'),
         projectionParameters: {
             win_width: 960,
             win_height:600,
@@ -18,7 +18,12 @@ var my = {
         },
         galleryImageSize: {
             width: 4400,
-            height: 510
+            height: 510,
+            pxBetweenPhotos: 20
+        },
+        imageSize: {
+            width: 200,
+            height: 150
         },
         vSlicesFactor: 0.095,
         centerOfTheLastColumn: 3600 / 2, // galleryImageSize.width / 2
@@ -305,6 +310,11 @@ var my = {
 
     functions: {
 
+        p: function(point) {
+            var p = my.globalVars.projectionParameters;
+            return point.project(p.win_width, p.win_height, p.fov, p.viewer_distance);
+        },
+
         testForPhone: function() {
             if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
             var detect = document.createElement('p');
@@ -314,6 +324,14 @@ var my = {
             my.globalVars.phone = true;
             my.globalVars.vSlicesFactor = 0.04;
             }
+        },
+
+        getMousePos: function (canvas, evt) {
+            var rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
         },
 
         draw: {
@@ -391,14 +409,39 @@ var my = {
     //            }
             },
 
-            scene: function(animationData) {
+            scene: function(animationData, zoomData) {
                 var canvas = document.getElementById('gallery');
                 var context = canvas.getContext('2d');
+                var p = my.functions.p;
                 r = my.constructors.scene();
                 if (!my.currentData)
                     my.currentData = my.constructors.animationData(r, 1, 0.01);
                 o = my.currentData.o;
                 o.draw(context);
+                if (zoomData !== undefined) {
+                    var img = document.getElementById('cesta');
+                    sourceX = zoomData.column * my.globalVars.galleryImageSize.pxBetweenPhotos + 
+                            (zoomData.column - 1) * my.globalVars.imageSize.width;
+                    sourceY = zoomData.row * my.globalVars.galleryImageSize.pxBetweenPhotos +
+                            (zoomData.row - 1) * my.globalVars.imageSize.height;
+                    sourceWidth = my.globalVars.imageSize.width;
+                    sourceHeight = my.globalVars.imageSize.height;
+                    destAux = my.constructors.point3D(zoomData.x0, zoomData.y0, 0);
+                    //destX = p(destAux).x;
+                    //destY = p(destAux).y;
+                    destWidth = my.globalVars.imageSize.width * 1.3;
+                    destHeight = my.globalVars.imageSize.height * 1.3;
+                    destX = p(my.currentData.o.vertices[0]).x + (zoomData.column - 1) * (zoomData.wp + zoomData.pxp - zoomData.wp / 32);
+                    if (zoomData.row === 1)
+                        destY = p(my.currentData.o.vertices[0]).y + zoomData.pxp;
+                    else if (zoomData.row === 2)
+                        destY = p(my.currentData.o.vertices[0]).y + zoomData.pxp * 3 + zoomData.hp / 2;
+                    else if (zoomData.row === 3)
+                        destY = p(my.currentData.o.vertices[3]).y - destHeight;
+                    context.drawImage(
+                            img, sourceX, sourceY, sourceWidth, sourceHeight,
+                            destX, destY, destWidth, destHeight);
+                }
             }
         },
 
@@ -509,10 +552,10 @@ var my = {
                 my.functions.setBackground(that, 'white');
                 my.functions.animateOrWait('on', 'right');
             },
-            bre: function() {
+            bre: function(b) {
                 clearTimeout(my.globalVars.t);
                 var that = this;
-                my.functions.setBackground(that, '');
+                if (b) my.functions.setBackground(that, '');
                 my.currentData.onOff = 'off';
                 my.currentData.startTime = (new Date()).getTime();
                 my.functions.animate(my.currentData);
@@ -526,10 +569,10 @@ var my = {
                 my.functions.animateOrWait('on', 'left');
                 // console.log('hola');
             },
-            bre: function() {
+            bre: function(b) {
                 clearTimeout(my.globalVars.t);
                 var that = this;
-                my.functions.setBackground(that, '');
+                if (b) my.functions.setBackground(that, '');
                 my.currentData.onOff = 'off';
                 my.currentData.startTime = (new Date()).getTime();
                 my.functions.animate(my.currentData);
@@ -544,6 +587,60 @@ var my = {
                     my.globalVars.releasedLeft === true) {
                 my.handlers.turnRight.bre();
             }
+        },
+
+        enlargePhoto: function(evt) {
+            if (my.globalVars.releasedRight === false ||
+                    my.globalVars.releasedLeft === false) return;
+            var p = my.functions.p;
+            var mousePos = my.functions.getMousePos(canvas, evt);
+            var center = p(my.currentData.o.getCenter());
+            var px = my.globalVars.galleryImageSize.pxBetweenPhotos;
+            var galleryWidth = my.globalVars.galleryImageSize.width;
+            var w = my.globalVars.imageSize.width;
+            var o = my.constructors.point3D(0, 0, 0);
+            var aux = my.constructors.point3D(w, 0, 0);
+            var auxPx = my.constructors.point3D(px, 0, 0);
+            var auxGW = my.constructors.point3D(galleryWidth, 0, 0);
+            // The image width after project
+            var wp = p(aux).x - p(o).x;
+            var pxp = p(auxPx).x - p(o).x;
+            var galleryWidthP = p(auxGW).x - p(o).x;
+            xRange = [];
+            yRange = [];
+            var imageX = mousePos.x - p(my.currentData.o.vertices[0]).x;
+            var i = 1;
+            for (var x = pxp; x < galleryWidthP; x += (wp + pxp)) {
+                if (imageX > x && imageX < x + wp) {
+                    xRange = [x, x + wp];
+                    break;
+                }
+                i++;
+            }
+            var column = i;
+            y0 = p(my.currentData.o.vertices[0]).y;
+            y1 = p(my.currentData.o.vertices[3]).y;
+            deltaY = (y1 - y0 - 4 * pxp) / 3;
+            var hp = p(my.currentData.o.vertices[3]).y - p(my.currentData.o.vertices[0]).y;
+            var row = 0;
+            if (mousePos.y > y0 + pxp && mousePos.y < y0 + pxp + deltaY) {
+                yRange = [y0 + pxp, deltaY];
+                row = 1;
+            } else if (mousePos.y > y0 + deltaY + 3 * pxp && mousePos.y < y0 + 2 * deltaY + 3 * pxp) {
+                yRange = [y0 + deltaY + 3 * pxp, y0 + 2 * deltaY + 3 * pxp];
+                row = 2;
+            } else if (mousePos.y > y0 + 2 * deltaY + 4 * pxp && mousePos.y < y1) {
+                yRange = [y0 + 2 * deltaY + 4 * pxp, y1];
+                row = 3;
+            }
+            var zoomData = {row: row, column: column, x0: xRange[0], x1: xRange[1], y0: yRange[0], y1: yRange[1], mousePos: mousePos, wp: wp, hp: deltaY, pxp: pxp};
+            if (xRange !== undefined && yRange !== undefined) {
+                my.globalVars.canvas.width = my.globalVars.canvas.width;
+                my.functions.draw.scene(my.currentData, zoomData);
+            } else {
+                my.globalVars.canvas.width = my.globalVars.canvas.width;
+                my.functions.draw.scene(my.currentData);
+            }
         }
     }
 };
@@ -557,6 +654,7 @@ izq.onmouseover = my.handlers.turnLeft.acc;
 izq.onmouseout = my.handlers.turnLeft.bre;
 var canvas = document.getElementById('gallery');
 canvas.onmouseover = my.handlers.stop;
+      canvas.addEventListener('mousemove', my.handlers.enlargePhoto);
 window.onload = function() {
     my.functions.testForPhone();
     my.functions.draw.scene();

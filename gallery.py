@@ -1,7 +1,7 @@
 import Image
 
 #opens an image:
-im = Image.open("gallery.jpg")
+im = Image.open("l.jpg")
 #creates a new empty image, RGB mode, and size 400 by 400.
 new_im = Image.new('RGB', (4400,510))
 
@@ -11,7 +11,7 @@ im.thumbnail((200,150))
 for i in xrange(20,4400,220):
     for j in xrange(20,510,170):
         #I change brightness of the images, just to emphasise they are unique copies.
-        # im=Image.eval(im,lambda x: x+(i+j)/30)
+        im=Image.eval(im,lambda x: x+(i+j)/300)
         #paste the image at location i,j:
         new_im.paste(im, (i,j))
 

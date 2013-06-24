@@ -418,31 +418,17 @@ var my = {
                     my.currentData = my.constructors.animationData(r, 1, 0.01);
                 o = my.currentData.o;
                 o.draw(context);
-                if (zoomData !== undefined) {
+                if (zoomData !== undefined && zoomData.x0 !== undefined) {
                     var img = document.getElementById('cesta');
-                    var sourceX = zoomData.column * my.globalVars.galleryImageSize.pxBetweenPhotos + 
-                            (zoomData.column - 1) * my.globalVars.imageSize.width;
-                    var sourceY = zoomData.row * my.globalVars.galleryImageSize.pxBetweenPhotos +
-                            (zoomData.row - 1) * my.globalVars.imageSize.height;
-                    var sourceWidth = my.globalVars.imageSize.width;
-                    var sourceHeight = my.globalVars.imageSize.height;
-                    var destAux = my.constructors.point3D(zoomData.x0, zoomData.y0, 0);
-                    //destX = p(destAux).x;
-                    //destY = p(destAux).y;
-                    var destWidth = my.globalVars.imageSize.width * 1.3;
-                    var destHeight = my.globalVars.imageSize.height * 1.3;
-                    var destX = p(my.currentData.o.vertices[0]).x + (zoomData.column - 1) * (zoomData.wp + zoomData.pxp - zoomData.wp / 32);
-                    var destY;
-                    if (zoomData.row === 1)
-                        destY = p(my.currentData.o.vertices[0]).y + zoomData.pxp;
-                    else if (zoomData.row === 2)
-                        destY = p(my.currentData.o.vertices[0]).y + zoomData.pxp * 3 + zoomData.hp / 2;
-                    else if (zoomData.row === 3)
-                        destY = p(my.currentData.o.vertices[3]).y - destHeight;
-                    if (destY !== undefined)
-                        context.drawImage(
-                                img, sourceX, sourceY, sourceWidth, sourceHeight,
-                                destX, destY, destWidth, destHeight);
+                    var photoX =
+                            my.currentData.o.vertices[0].x + zoomData.column * my.globalVars.galleryImageSize.pxBetweenPhotos +
+                            (zoomData.column - 1) * my.globalVars.imageSize.width + my.globalVars.imageSize.width / 2;
+                    var photoY;
+                    if (zoomData.row === 1) photoY = my.currentData.o.vertices[0].y - my.globalVars.galleryImageSize.pxBetweenPhotos - my.globalVars.imageSize.height / 2;
+                    if (zoomData.row === 2) photoY = my.currentData.o.vertices[0].y - my.globalVars.galleryImageSize.pxBetweenPhotos * 2 - my.globalVars.imageSize.height * 3 / 2;
+                    if (zoomData.row === 3) photoY = my.currentData.o.vertices[0].y - my.globalVars.galleryImageSize.pxBetweenPhotos - my.globalVars.imageSize.height * 5 / 2;
+                    var photo = my.constructors.rectangle3D(my.globalVars.imageSize.width, my.globalVars.imageSize.height, img).moveTo(photoX, photoY, -30);
+                    photo.draw(context);
                 }
             }
         },
@@ -611,15 +597,14 @@ var my = {
             xRange = [];
             yRange = [];
             var imageX = mousePos.x - p(my.currentData.o.vertices[0]).x;
-            var i = 1;
+            var column = 1;
             for (var x = pxp; x < galleryWidthP; x += (wp + pxp)) {
                 if (imageX > x && imageX < x + wp) {
                     xRange = [x, x + wp];
                     break;
                 }
-                i++;
+                column++;
             }
-            var column = i;
             y0 = p(my.currentData.o.vertices[0]).y;
             y1 = p(my.currentData.o.vertices[3]).y;
             deltaY = (y1 - y0 - 4 * pxp) / 3;
@@ -636,7 +621,7 @@ var my = {
                 row = 3;
             }
             var zoomData = {row: row, column: column, x0: xRange[0], x1: xRange[1], y0: yRange[0], y1: yRange[1], mousePos: mousePos, wp: wp, hp: deltaY, pxp: pxp};
-            if (xRange !== undefined && yRange !== undefined) {
+            if (xRange !== [] && yRange !== undefined) {
                 my.globalVars.canvas.width = my.globalVars.canvas.width;
                 my.functions.draw.scene(my.currentData, zoomData);
             } else {
@@ -656,7 +641,7 @@ izq.onmouseover = my.handlers.turnLeft.acc;
 izq.onmouseout = my.handlers.turnLeft.bre;
 var canvas = document.getElementById('gallery');
 canvas.onmouseover = my.handlers.stop;
-      canvas.addEventListener('mousemove', my.handlers.enlargePhoto);
+canvas.addEventListener('mousemove', my.handlers.enlargePhoto);
 window.onload = function() {
     my.functions.testForPhone();
     my.functions.draw.scene();
